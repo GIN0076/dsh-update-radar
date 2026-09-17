@@ -1,0 +1,23 @@
+{
+  "name": "dsh-update-radar",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DSH 更新雷达：自动检测 GitHub 新版本并在侧边栏显示蓝色更新提示",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "tools"
+  ],
+  "dsh": {
+    "client": {
+      "platform": "web"
+    }
+  },
+  "license": "MIT"
+}
