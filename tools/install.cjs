@@ -102,28 +102,20 @@ function install() {
   }
   log('Step 1 完成 ✓');
 
-  // Step 2: 确保 cordis.patch.yml 存在且包含 insert 行
-  log('Step 2: 配置 cordis.patch.yml...');
-  var patchPath = path.join(PROFILE_DIR, 'cordis.patch.yml');
-  var patchContent = '';
-  if (fs.existsSync(patchPath)) {
-    patchContent = fs.readFileSync(patchPath, 'utf8');
-  }
+  // Step 2: 添加到 dsh.profile.bundles（插件自己的 cordis.patch.yml 通过 dsh.bundle.patch 自动注册）
+  log('Step 2: 添加到 dsh.profile.bundles...');
+  var dshConfig = pkg.dsh || {};
+  var profileConfig = dshConfig.profile || {};
+  var bundles = profileConfig.bundles || [];
 
-  // 检查是否已有 insert 行
-  if (patchContent.includes(PLUGIN_NAME)) {
-    log('cordis.patch.yml 已包含 ' + PLUGIN_NAME + '，跳过');
+  if (bundles.indexOf(PLUGIN_NAME) !== -1) {
+    log('已在 bundles 中，跳过');
   } else {
-    // ⚠️ 关键：insert 必须是数组格式，不是字符串！
-    // ❌ 错误：- id: my-plugin\n  insert: my-plugin
-    // ✅ 正确：- insert:\n    - id: my-plugin\n      name: 'my-plugin'
-    var insertBlock = '\n# dsh-update-radar\n- insert:\n    - id: ' + PLUGIN_NAME + '\n      name: \'' + PLUGIN_NAME + '\'\n';
-    if (patchContent.trim() === '' || patchContent.trim() === '[]') {
-      patchContent = '- insert:\n    - id: ' + PLUGIN_NAME + '\n      name: \'' + PLUGIN_NAME + '\'\n';
-    } else {
-      patchContent = patchContent.trimEnd() + insertBlock;
-    }
-    fs.writeFileSync(patchPath, patchContent, 'utf8');
+    bundles.push(PLUGIN_NAME);
+    profileConfig.bundles = bundles;
+    dshConfig.profile = profileConfig;
+    pkg.dsh = dshConfig;
+    writeJson(PROFILE_PKG, pkg);
     log('Step 2 完成 ✓');
   }
 
@@ -159,28 +151,21 @@ function uninstall() {
   }
   log('Step 1 完成 ✓');
 
-  // Step 2: 从 cordis.patch.yml 移除 insert 行
-  log('Step 2: 清理 cordis.patch.yml...');
-  var patchPath = path.join(PROFILE_DIR, 'cordis.patch.yml');
-  if (fs.existsSync(patchPath)) {
-    var patchContent = fs.readFileSync(patchPath, 'utf8');
-    // 移除包含 PLUGIN_NAME 的行（简化处理）
-    var lines = patchContent.split('\n');
-    var newLines = [];
-    var skipNext = false;
-    for (var i = 0; i < lines.length; i++) {
-      var line = lines[i];
-      if (line.includes(PLUGIN_NAME)) {
-        // 跳过这个条目的所有相关行
-        continue;
-      }
-      if (line.trim() === '' && newLines.length > 0 && newLines[newLines.length - 1].trim() === '') {
-        continue; // 跳过连续空行
-      }
-      newLines.push(line);
-    }
-    fs.writeFileSync(patchPath, newLines.join('\n'), 'utf8');
+  // Step 2: 从 dsh.profile.bundles 移除
+  log('Step 2: 从 dsh.profile.bundles 移除...');
+  var dshConfig = pkg.dsh || {};
+  var profileConfig = dshConfig.profile || {};
+  var bundles = profileConfig.bundles || [];
+  var idx = bundles.indexOf(PLUGIN_NAME);
+  if (idx !== -1) {
+    bundles.splice(idx, 1);
+    profileConfig.bundles = bundles;
+    dshConfig.profile = profileConfig;
+    pkg.dsh = dshConfig;
+    writeJson(PROFILE_PKG, pkg);
     log('Step 2 完成 ✓');
+  } else {
+    log('不在 bundles 中，跳过');
   }
 
   // 清理缓存
