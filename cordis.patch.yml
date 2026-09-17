@@ -1,0 +1,4 @@
+# dsh-update-radar profile patch: one loader row for this package.
+- insert:
+    - id: dsh-update-radar
+      name: dsh-update-radar
